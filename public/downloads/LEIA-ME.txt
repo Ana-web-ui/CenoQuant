@@ -1,0 +1,61 @@
+CENO QUANT WEB 0.2.0 — INSTALAÇÃO E FLUXO
+
+1. Baixe o script atualizado nesta aplicação.
+2. Blender: Preferences > Add-ons > Install from Disk > ZIP baixado. Habilite.
+   Abra a aba Ceno Quant na área 3D pressionando N.
+3. Max: Scripting > Run Script > CenoQuant.ms baixado.
+4. Trabalhe em cópia do projeto e configure unidades reais.
+5. Selecione objetos e preencha categoria/código no painel. Aplicar classificação
+   grava metadados nos objetos; a extração em si não altera a geometria.
+6. Clique Extrair quantitativo. Confira avisos e objetos medidos.
+7. Clique Exportar JSON para o site e salve o arquivo.
+8. Na aplicação web, Importar projeto > selecione/arraste o JSON.
+9. Revise as peças. O lápis edita categoria, código, observação e inclusão.
+   Medidas físicas permanecem as extraídas do 3D. Para corrigi-las, ajuste a cena
+   e faça nova extração/importação. Importação substitui o projeto aberto.
+10. Selecione várias peças para definir categoria ou excluir/reincluir em lote.
+11. Materiais mostra áreas por categoria e nome do material. Acréscimo é opcional.
+12. Exportar gera quatro CSVs independentes ou um JSON revisado.
+    CSVs consideram todos os itens incluídos, independente dos filtros da tela.
+    CSV de avisos também inclui objetos excluídos na revisão web.
+13. No Excel, importe com UTF-8 e ponto e vírgula; códigos devem ser coluna TEXTO.
+
+ARMAZENAMENTO
+
+O JSON é processado no navegador, sem upload. A revisão é salva em localStorage
+quando disponível; é específica deste navegador/dispositivo e pode ser apagada
+ao limpar dados. Baixe o JSON revisado como cópia. Não há conta, sincronização,
+histórico multiusuário ou salvamento de cenas 3D na aplicação.
+Limites: 20 MB / 10.000 objetos por JSON. Formato: schema ceno-quant/1.
+
+CRITÉRIOS
+
+- Cada objeto geométrico representa uma unidade/conjunto, não cada componente
+  dentro de uma malha unida ou array.
+- Dimensões são o envelope nos eixos DO MUNDO, em metros. Rotação pode alterá-lo.
+- Área é soma de todas as faces modeladas em m², inclusive interiores, verso e
+  espessuras. Caixa 3 x 0,1 x 2 m: 13 m². Plano 3 x 2 m: 6 m².
+- Materiais identificam superfícies pelo nome, não insumos físicos. Materiais
+  compostos não são decompostos em camadas. Nomes iguais são agrupados.
+- Resumo agrupa códigos equivalentes com mesma categoria, dimensões (6 decimais)
+  e conjunto de materiais. Sem código, cada objeto permanece separado na web.
+- Proxies/instanciadores/Geometry Nodes e geometria exclusiva de render podem
+  ser excluídos ou exigir conversão de uma cópia em malha. Leia todos os avisos.
+- Quantitativo preliminar: não faz plano de corte, chapas, cálculo estrutural ou
+  orçamento. Áreas de faces e acréscimos não equivalem a quantidades de compra.
+
+ESTADO DE VALIDAÇÃO
+
+As regras web possuem testes automatizados. O cálculo Python tem testes simulados
+na versão nativa anterior. Blender e 3ds Max não estão instalados no ambiente
+de construção: os scripts 0.2.0 precisam ser testados nativamente, inclusive o
+JSON do Max/Corona. Não há certificação de compatibilidade nativa.
+
+TESTE DE PILOTO
+
+Crie uma caixa alinhada de 3 x 0,1 x 2 m e aplique um material.
+Classifique Painéis / P01. Extraia: 1 unidade e 13 m² de superfície.
+Duplique o objeto e extraia ambos: 2 unidades e 26 m². Exporte o JSON.
+Importe no site e confira esses números. Exclua uma peça: 1 unidade e 13 m².
+Reinclua, baixe o JSON revisado e importe novamente: os valores devem persistir.
+Confira CSVs e teste nomes com acentos/aspas no material e nos objetos.

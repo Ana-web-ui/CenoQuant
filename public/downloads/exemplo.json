@@ -1,0 +1,384 @@
+{
+  "schema": "ceno-quant/1",
+  "project": {
+    "name": "Estande Horizonte · 120 m²",
+    "source": "blender",
+    "application": "Blender · dados demonstrativos",
+    "scene": "Exemplo de cenografia",
+    "scope": "Objetos de exemplo; valores sintéticos",
+    "extractedAt": "2026-10-20T09:00:00-03:00"
+  },
+  "lossPercent": 0,
+  "pieces": [
+    {
+      "id": "demo-1",
+      "name": "Painel de entrada 01",
+      "code": "PN-01",
+      "category": "Painéis",
+      "dimensionsM": [
+        3,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 7
+        },
+        {
+          "material": "Lona tensionada",
+          "areaM2": 6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-2",
+      "name": "Painel de entrada 02",
+      "code": "PN-01",
+      "category": "Painéis",
+      "dimensionsM": [
+        3,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 7
+        },
+        {
+          "material": "Lona tensionada",
+          "areaM2": 6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-3",
+      "name": "Painel de entrada 03",
+      "code": "PN-01",
+      "category": "Painéis",
+      "dimensionsM": [
+        3,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 7
+        },
+        {
+          "material": "Lona tensionada",
+          "areaM2": 6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-4",
+      "name": "Painel de entrada 04",
+      "code": "PN-01",
+      "category": "Painéis",
+      "dimensionsM": [
+        3,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 7
+        },
+        {
+          "material": "Lona tensionada",
+          "areaM2": 6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-5",
+      "name": "Balcão de atendimento 01",
+      "code": "BC-01",
+      "category": "Balcões",
+      "dimensionsM": [
+        1.5,
+        0.6,
+        1.1
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 6.42
+        }
+      ],
+      "note": "Conjunto modelado como um objeto.",
+      "included": true
+    },
+    {
+      "id": "demo-6",
+      "name": "Balcão de atendimento 02",
+      "code": "BC-01",
+      "category": "Balcões",
+      "dimensionsM": [
+        1.5,
+        0.6,
+        1.1
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 6.42
+        }
+      ],
+      "note": "Conjunto modelado como um objeto.",
+      "included": true
+    },
+    {
+      "id": "demo-7",
+      "name": "Módulo de palco 01",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-8",
+      "name": "Módulo de palco 02",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-9",
+      "name": "Módulo de palco 03",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-10",
+      "name": "Módulo de palco 04",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-11",
+      "name": "Módulo de palco 05",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-12",
+      "name": "Módulo de palco 06",
+      "code": "PL-01",
+      "category": "Palcos",
+      "dimensionsM": [
+        2,
+        1,
+        0.3
+      ],
+      "surfaces": [
+        {
+          "material": "Compensado estrutural",
+          "areaM2": 3.8
+        },
+        {
+          "material": "Carpete grafite",
+          "areaM2": 2
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-13",
+      "name": "Totem de sinalização 01",
+      "code": "TT-01",
+      "category": "Sinalização",
+      "dimensionsM": [
+        0.8,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 1.76
+        },
+        {
+          "material": "Vinil impresso",
+          "areaM2": 1.6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-14",
+      "name": "Totem de sinalização 02",
+      "code": "TT-01",
+      "category": "Sinalização",
+      "dimensionsM": [
+        0.8,
+        0.1,
+        2
+      ],
+      "surfaces": [
+        {
+          "material": "MDF branco",
+          "areaM2": 1.76
+        },
+        {
+          "material": "Vinil impresso",
+          "areaM2": 1.6
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-15",
+      "name": "Mesa de apoio",
+      "code": "MB-01",
+      "category": "Mobiliário",
+      "dimensionsM": [
+        0.8,
+        0.8,
+        0.75
+      ],
+      "surfaces": [
+        {
+          "material": "Laminado freijó",
+          "areaM2": 3.68
+        }
+      ],
+      "note": "",
+      "included": true
+    },
+    {
+      "id": "demo-16",
+      "name": "Elemento a revisar",
+      "code": "",
+      "category": "Sem categoria",
+      "dimensionsM": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "surfaces": [
+        {
+          "material": "Sem material",
+          "areaM2": 1.5
+        }
+      ],
+      "note": "Conferir classificação com a criação.",
+      "included": true
+    }
+  ],
+  "warnings": [
+    {
+      "object": "Critério de contagem",
+      "message": "Cada objeto representa uma unidade ou conjunto. Malhas unidas e arrays não são decompostos em peças de fabricação."
+    },
+    {
+      "object": "Critério de área",
+      "message": "Superfície soma todas as faces modeladas, inclusive verso, espessuras e interiores. Revise antes de transformar o resultado em compra."
+    },
+    {
+      "object": "Escopo de exemplo",
+      "message": "Este projeto contém dados demonstrativos, sem vínculo com uma cena real."
+    },
+    {
+      "object": "Elemento a revisar",
+      "message": "Objeto incluído, mas ainda sem categoria e material definido."
+    }
+  ]
+}
