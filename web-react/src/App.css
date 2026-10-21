@@ -1,0 +1,168 @@
+.pagina {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.etiqueta {
+  color: #6750d6;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+h1 {
+  margin: 16px 0;
+  font-size: clamp(36px, 6vw, 48px);
+}
+
+p {
+  color: #656477;
+  line-height: 1.6;
+}
+
+.cartao {
+  margin-top: 40px;
+  padding: 32px;
+  background: white;
+  border: 1px solid #e5e4ee;
+  border-radius: 16px;
+}
+
+.cartao h2 {
+  margin-top: 0;
+}
+
+button {
+  margin-top: 16px;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #6750d6;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tabela-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+caption {
+  padding-bottom: 16px;
+  text-align: left;
+  font-weight: bold;
+}
+
+th,
+td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e4ee;
+}
+
+th {
+  background: #f5f3ff;
+  color: #51418f;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+td {
+  font-size: 14px;
+}
+
+tbody tr:hover {
+  background: #faf9ff;
+}
+
+.medida {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.paginacao button {
+  margin-top: 0;
+}
+
+.paginacao span {
+  color: #656477;
+  font-size: 14px;
+}
+
+.filtros {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.filtros label {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.filtros input,
+.filtros select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d5d3e2;
+  border-radius: 8px;
+  background: white;
+  color: #252338;
+  font: inherit;
+  font-weight: normal;
+}
+
+.filtros input:focus,
+.filtros select:focus {
+  outline: 2px solid #6750d6;
+  outline-offset: 2px;
+}
+
+.filtros button {
+  margin-top: 0;
+  min-height: 44px;
+}
+
+.categoria-peca {
+  width: 100%;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid #d5d3e2;
+  border-radius: 6px;
+  background: white;
+  color: #252338;
+  font: inherit;
+}
+
+.categoria-peca:focus {
+  outline: 2px solid #6750d6;
+  outline-offset: 2px;
+}

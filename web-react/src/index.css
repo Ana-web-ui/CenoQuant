@@ -1,0 +1,18 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #252338;
+  background: #f5f5fa;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
