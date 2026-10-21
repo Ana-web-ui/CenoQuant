@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import './App.css'
+import ResumoMateriais from './components/ResumoMateriais'
+
+
+
+type Superficie = {
+  material: string
+  areaM2: number
+}
 
 type Peca = {
   id: string
@@ -8,6 +16,7 @@ type Peca = {
   category: string
   dimensionsM: [number, number, number]
   included: boolean
+  surfaces: Superficie[]
 }
 
 type Projeto = {
@@ -41,15 +50,45 @@ function validarPeca(valor: unknown): Peca {
     throw new Error('Há objetos com identificação ou dimensões inválidas.')
   }
 
+  const superficies = peca.surfaces
+
+  if (!Array.isArray(superficies)) {
+    throw new Error('O arquivo contém um objeto com superfícies inválidas.')
+  }
+
+  const superficiesValidas: Superficie[] = superficies.map(
+    (valor: unknown) => {
+      if (typeof valor !== 'object' || valor === null) {
+        throw new Error('Há uma superfície invalida no arquivo.')
+      }
+      
+      const superficie = valor as Record<string, unknown>
+
+      if (
+        typeof superficie.material !== 'string' ||
+        typeof superficie.areaM2 !== 'number' ||
+        !Number.isFinite(superficie.areaM2) ||
+        superficie.areaM2 < 0
+      ) {
+        throw new Error('há uma superficie com material ou área inválida')
+      }
+
+      return {
+        material: superficie.material,
+        areaM2: superficie.areaM2,
+      }
+    },
+  )
+
   return {
     id: peca.id,
     name: peca.name,
-    category:
-      typeof peca.category === 'string' && peca.category.trim()
-        ? peca.category
-        : 'Sem categoria',
+    category: typeof peca.category === 'string' && peca.category.trim()
+      ? peca.category
+      : 'Sem categoria',
     dimensionsM: dimensoes as [number, number, number],
     included: peca.included !== false,
+    surfaces: superficiesValidas,
   }
 }
 
@@ -245,6 +284,18 @@ function alterarCategoria(id: string, novaCategoria: string) {
   const total = pecas.length
   const totalIncluido = pecas.filter((peca) => peca.included).length
   const totalExcluido = total - totalIncluido
+
+  const superficieIncluida = pecas
+    .filter((peca) => peca.included)
+    .reduce(
+      (total, peca) =>
+        total +
+        peca.surfaces.reduce(
+          (subtotal, superficie) => subtotal + superficie.areaM2,
+          0,
+        ),
+      0,
+    )
   const totalFiltrado = pecasFiltradas.length
   const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA))
   const inicio = (pagina - 1) * ITENS_POR_PAGINA
@@ -266,6 +317,29 @@ const resumoPorCategoria = [...contagemPorCategoria.entries()]
     quantidade,
   }))
   .sort((a, b) => a.categoria.localeCompare(b.categoria, 'pt-BR'))
+
+const areasPorMaterial = new Map<string, number>()
+
+for (const peca of pecas) {
+  if (!peca.included) continue
+
+  for (const superficie of peca.surfaces) {
+    const material = superficie.material.trim() || 'Sem material'
+    const areaAtual = areasPorMaterial.get(material) ?? 0
+
+    areasPorMaterial.set(
+      material,
+      areaAtual + superficie.areaM2,
+    )
+  }
+}
+
+const resumoPorMaterial = [...areasPorMaterial.entries()]
+  .map(([material, areaM2]) => ({
+    material,
+    areaM2,
+  }))
+  .sort((a, b) => a.material.localeCompare(b.material, 'pt-BR'))
 
 function exportarResumoCSV() {
   if (resumoPorCategoria.length === 0) return
@@ -306,6 +380,58 @@ function exportarResumoCSV() {
 
   link.href = endereco
   link.download = 'CenoQuant_resumo_categorias.csv'
+
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(endereco)
+  }, 1000)
+}
+
+function exportarMateriaisCSV() {
+  if (resumoPorMaterial.length === 0) return
+
+  function prepararCelula(texto: string) {
+    // Evita interpretar nomes de materiais como fórmulas.
+    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(texto)) {
+      texto = "'" + texto
+    }
+
+    return `"${texto.replace(/"/g, '""')}"`
+  }
+
+  function formatarAreaCSV(area: number) {
+    return area.toLocaleString('pt-BR', {
+      useGrouping: false,
+      minimumFractionDigits: 6,
+      maximumFractionDigits: 6,
+    })
+  }
+
+  const linhas = [
+    ['Material', 'Superfície medida (m²)'],
+    ...resumoPorMaterial.map((item) => [
+      item.material,
+      formatarAreaCSV(item.areaM2),
+    ]),
+    ['Total de superfície', formatarAreaCSV(superficieIncluida)],
+  ]
+
+  const conteudo = linhas
+    .map((linha) => linha.map(prepararCelula).join(';'))
+    .join('\r\n')
+
+  const arquivo = new Blob(['\uFEFF', conteudo], {
+    type: 'text/csv;charset=utf-8',
+  })
+
+  const endereco = URL.createObjectURL(arquivo)
+  const link = document.createElement('a')
+
+  link.href = endereco
+  link.download = 'CenoQuant_superficie_por_material.csv'
 
   document.body.appendChild(link)
   link.click()
@@ -358,6 +484,24 @@ function exportarResumoCSV() {
             {' · '}
             <strong>{totalExcluido.toLocaleString('pt-BR')}</strong> excluídos
             {' — totais do projeto inteiro.'}
+          </p>
+
+          <p aria-live="polite">
+            Superfície medida dos objetos incluídos:{' '}
+            <strong>
+              {superficieIncluida.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              m²
+            </strong>
+          </p>
+
+          <p>
+            Esta medida soma as faces da geometria, incluindo frente,
+            verso e espessuras modeladas. Não representa diretamente
+            área de piso ou quantidade de material para compra.
+            O total considera o projeto inteiro, independentemente dos filtros.
           </p>
 
           <section className="resumo-categorias">
@@ -418,6 +562,12 @@ function exportarResumoCSV() {
     A contagem não representa necessariamente peças de fabricação.
   </p>
 </section>
+
+          <ResumoMateriais
+            materiais={resumoPorMaterial}
+            superficieTotal={superficieIncluida}
+            aoExportar={exportarMateriaisCSV}
+          />
 
           <div className="filtros">
             <label>
