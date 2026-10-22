@@ -3,6 +3,16 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "node scripts/serve.mjs", "build": "node scripts/build.mjs", "test": "node tests/domain.test.mjs", "start": "node scripts/serve.mjs" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node tests/domain.test.mjs",
+    "start": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
 }

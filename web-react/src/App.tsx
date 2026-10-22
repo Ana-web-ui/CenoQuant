@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import './App.css'
 import ResumoMateriais from './components/ResumoMateriais'
-
-
+import ResumoCategorias from './components/ResumoCategorias'
+import FiltrosPecas from './components/FiltrosPecas'
+import TabelaPecas from './components/TabelaPecas'
 
 type Superficie = {
   material: string
@@ -92,12 +93,6 @@ function validarPeca(valor: unknown): Peca {
   }
 }
 
-function formatarMedida(valor: number) {
-  return valor.toLocaleString('pt-BR', {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  })
-}
 
 function App() {
   const [projeto, setProjeto] = useState<Projeto | null>(null)
@@ -504,64 +499,11 @@ function exportarMateriaisCSV() {
             O total considera o projeto inteiro, independentemente dos filtros.
           </p>
 
-          <section className="resumo-categorias">
-          <h3>Quantidades por categoria</h3>
-           <button
-             type="button"
-            onClick={exportarResumoCSV}
-            disabled={resumoPorCategoria.length === 0}
-            >
-            Exportar resumo em CSV
-          </button>
-
-  <p>
-    Apenas objetos incluídos. Este resumo considera o projeto inteiro.
-  </p>
-
-  {resumoPorCategoria.length === 0 ? (
-    <p>Nenhum objeto incluído no quantitativo.</p>
-  ) : (
-    <div className="tabela-container">
-      <table>
-        <caption>Contagem dos objetos incluídos por categoria</caption>
-
-        <thead>
-          <tr>
-            <th scope="col">Categoria</th>
-            <th scope="col" className="medida">
-              Objetos incluídos
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {resumoPorCategoria.map((item) => (
-            <tr key={item.categoria}>
-              <th scope="row">{item.categoria}</th>
-              <td className="medida">
-                {item.quantidade.toLocaleString('pt-BR')}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-
-        <tfoot>
-          <tr>
-            <th scope="row">Total incluído</th>
-            <td className="medida">
-              <strong>{totalIncluido.toLocaleString('pt-BR')}</strong>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  )}
-
-  <p>
-    Cada objeto conta como uma unidade ou conjunto do modelo.
-    A contagem não representa necessariamente peças de fabricação.
-  </p>
-</section>
+<ResumoCategorias
+  categorias={resumoPorCategoria}
+  totalIncluido={totalIncluido}
+  aoExportar={exportarResumoCSV}
+/>
 
           <ResumoMateriais
             materiais={resumoPorMaterial}
@@ -569,47 +511,24 @@ function exportarMateriaisCSV() {
             aoExportar={exportarMateriaisCSV}
           />
 
-          <div className="filtros">
-            <label>
-              Buscar por nome
-              <input
-                type="search"
-                placeholder="Ex.: piso, parede, LED..."
-                value={busca}
-                onChange={(evento) => {
-                  setBusca(evento.target.value)
-                  setPagina(1)
-                }}
-              />
-            </label>
-
-            <label>
-              Categoria
-              <select
-                value={categoria}
-                onChange={(evento) => {
-                  setCategoria(evento.target.value)
-                  setPagina(1)
-                }}
-              >
-                <option value="">Todas as categorias</option>
-                {categorias.map((nome) => (
-                  <option key={nome} value={nome}>{nome}</option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => {
-                setBusca('')
-                setCategoria('')
-                setPagina(1)
-              }}
-            >
-              Limpar filtros
-            </button>
-          </div>
+         <FiltrosPecas
+  busca={busca}
+  categoria={categoria}
+  categorias={categorias}
+  aoAlterarBusca={(valor) => {
+    setBusca(valor)
+    setPagina(1)
+  }}
+  aoAlterarCategoria={(valor) => {
+    setCategoria(valor)
+    setPagina(1)
+  }}
+  aoLimpar={() => {
+    setBusca('')
+    setCategoria('')
+    setPagina(1)
+  }}
+/>
 
           <p role="status">
             {totalFiltrado.toLocaleString('pt-BR')} de{' '}
@@ -628,73 +547,12 @@ function exportarMateriaisCSV() {
             </p>
           ) : (
             <>
-              <p id="aviso-dimensoes">
-                Dimensões em metros, nos eixos X, Y e Z do mundo.
-                A rotação do objeto pode alterar essas medidas.
-              </p>
-
-              <div className="tabela-container">
-                <table aria-describedby="aviso-dimensoes">
-                  <caption>Objetos importados do projeto</caption>
-
-                  <thead>
-                    <tr>
-                      <th scope="col">Incluir</th>
-                      <th scope="col">Nome</th>
-                      <th scope="col">Categoria</th>
-                      <th scope="col">X (m)</th>
-                      <th scope="col">Y (m)</th>
-                      <th scope="col">Z (m)</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {pecasVisiveis.map((peca) => (
-                      <tr
-                        key={peca.id}
-                        className={peca.included ? '' : 'peca-excluida'}
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={peca.included}
-                            aria-label={`Incluir ${peca.name} no quantitativo`}
-                            onChange={(evento) =>
-                              alterarInclusao(peca.id, evento.target.checked)
-                            }
-                          />
-                        </td>
-                        <td>{peca.name}</td>
-                        <td>
-                          <select
-                            className="categoria-peca"
-                            aria-label={`Categoria de ${peca.name}`}
-                            value={peca.category}
-                            onChange={(evento) =>
-                           alterarCategoria(peca.id, evento.target.value)
-                          }
-                           >
-                          {categorias.map((nome) => (
-                          <option key={nome} value={nome}>
-                         {nome}
-                        </option>
-                           ))}
-                          </select>
-                        </td>
-                        <td className="medida">
-                          {formatarMedida(peca.dimensionsM[0])}
-                        </td>
-                        <td className="medida">
-                          {formatarMedida(peca.dimensionsM[1])}
-                        </td>
-                        <td className="medida">
-                          {formatarMedida(peca.dimensionsM[2])}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+             <TabelaPecas
+  pecas={pecasVisiveis}
+  categorias={categorias}
+  aoAlterarInclusao={alterarInclusao}
+  aoAlterarCategoria={alterarCategoria}
+/>
 
               <nav className="paginacao" aria-label="Páginas da tabela">
                 <button
