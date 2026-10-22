@@ -14,26 +14,64 @@ import { calcularSuperficieIncluida } from './utils/calcularSuperficieIncluida'
 
 const ITENS_POR_PAGINA = 20
 function App() {
-  const [projeto, setProjeto] = useState<Projeto | null>(null)
+  const [projeto, setProjeto] = useState<Projeto | null>(() => {
+  try {
+    const salvo = localStorage.getItem('cenoquant-revisao-v1')
+
+    if (!salvo) return null
+
+    const dados = JSON.parse(salvo)
+
+    if (
+      typeof dados?.nome !== 'string' ||
+      !Array.isArray(dados?.pecas) ||
+      dados.pecas.length > 10000 ||
+      dados?.arquivoOriginal?.schema !== 'ceno-quant/1' ||
+      !Array.isArray(dados.arquivoOriginal.pieces)
+    ) {
+      return null
+    }
+
+    const pecas: Peca[] = dados.pecas.map(validarPeca)
+    const ids = new Set(pecas.map((peca) => peca.id))
+
+    if (ids.size !== pecas.length) return null
+
+    return {
+      nome: dados.nome,
+      pecas,
+      arquivoOriginal: dados.arquivoOriginal,
+    }
+  } catch {
+    return null
+  }
+})
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [pagina, setPagina] = useState(1)
   const [busca, setBusca] = useState('')
   const [categoria, setCategoria] = useState('')
-  useEffect(() => {
-  if (!projeto) return
+  const [statusSalvamento, setStatusSalvamento] = useState<
+    'sem-projeto' | 'salvo' | 'erro'
+  >('sem-projeto')
 
-  try {
-    localStorage.setItem(
-      'cenoquant-revisao-v1',
-      JSON.stringify(projeto),
-    )
-  } catch {
-    setErro(
-      'Não foi possível salvar a revisão no navegador. Baixe o JSON revisado para guardar suas alterações.',
-    )
-  }
-}, [projeto])
+  useEffect(() => {
+    if (!projeto) {
+      setStatusSalvamento('sem-projeto')
+      return
+    }
+
+    try {
+      localStorage.setItem(
+        'cenoquant-revisao-v1',
+        JSON.stringify(projeto),
+      )
+
+      setStatusSalvamento('salvo')
+    } catch {
+      setStatusSalvamento('erro')
+    }
+  }, [projeto])
 
   async function importarProjeto(evento: ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0]
@@ -69,6 +107,16 @@ function App() {
 
       if (identificadores.size !== pecas.length) {
         throw new Error('O arquivo contém identificadores repetidos.')
+      }
+      if (projeto) {
+      const confirmou = window.confirm(
+        'Importar este arquivo substituirá a revisão atual e sua cópia ' +
+        'automática neste navegador. Se quiser guardar a revisão atual, ' +
+        'clique em Cancelar e baixe o JSON revisado antes de continuar. ' +
+        'Deseja substituir?',
+        )
+
+        if (!confirmou) return
       }
 
       setProjeto({
@@ -331,7 +379,12 @@ function exportarMateriaisCSV() {
 
       <section className="cartao">
         <h2>Importar projeto</h2>
-        <p>Selecione o JSON extraído do Blender ou do 3ds Max.</p>
+        <p>
+        A revisão é salva automaticamente neste navegador.
+        Para continuar, abra o mesmo endereço usando o mesmo navegador
+        e perfil. Baixe o JSON revisado para manter uma cópia de segurança
+        ou transferir a revisão para outro computador.
+        </p>
 
         <input
           type="file"
@@ -353,6 +406,18 @@ function exportarMateriaisCSV() {
       {projeto && (
         <section className="cartao">
           <h2>{projeto.nome}</h2>
+          <p
+            role="status"
+            style={{
+              color: statusSalvamento === 'erro' ? '#b42318' : undefined,
+            }}
+          >
+            {statusSalvamento === 'salvo' &&
+              'Revisão salva neste navegador.'}
+
+            {statusSalvamento === 'erro' &&
+              'Não foi possível salvar a revisão no navegador. Baixe o JSON revisado para guardar suas alterações.'}
+          </p>
           <button type="button" onClick={exportarProjeto}>
             Baixar JSON revisado
           </button>
@@ -417,10 +482,6 @@ function exportarMateriaisCSV() {
           <p role="status">
             {totalFiltrado.toLocaleString('pt-BR')} de{' '}
             {total.toLocaleString('pt-BR')} objetos encontrados.
-          </p>
-          <p>
-             Baixe o JSON revisado antes de fechar ou atualizar a página.
-            Para continuar depois, importe esse arquivo.
           </p>
 
           {totalFiltrado === 0 ? (
