@@ -1,99 +1,18 @@
-import { useState } from 'react'
+import { useEffect,  useState } from 'react'
 import type { ChangeEvent } from 'react'
 import './App.css'
 import ResumoMateriais from './components/ResumoMateriais'
 import ResumoCategorias from './components/ResumoCategorias'
 import FiltrosPecas from './components/FiltrosPecas'
 import TabelaPecas from './components/TabelaPecas'
-
-type Superficie = {
-  material: string
-  areaM2: number
-}
-
-type Peca = {
-  id: string
-  name: string
-  category: string
-  dimensionsM: [number, number, number]
-  included: boolean
-  surfaces: Superficie[]
-}
-
-type Projeto = {
-  nome: string
-  pecas: Peca[]
-  arquivoOriginal: Record<string, unknown>
-}
+import Paginacao from './components/Paginacao'
+import type {  Peca, Projeto } from './types/cenoquant'
+import { validarPeca } from './utils/validarPeca'
+import { calcularResumoCategorias } from './utils/calcularResumoCategorias'
+import { calcularResumoMateriais } from './utils/calcularResumoMateriais'
+import { calcularSuperficieIncluida } from './utils/calcularSuperficieIncluida'
 
 const ITENS_POR_PAGINA = 20
-
-function validarPeca(valor: unknown): Peca {
-  if (typeof valor !== 'object' || valor === null) {
-    throw new Error('O arquivo contém um objeto inválido.')
-  }
-
-  const peca = valor as Record<string, unknown>
-  const dimensoes = peca.dimensionsM
-
-  if (
-    typeof peca.id !== 'string' ||
-    typeof peca.name !== 'string' ||
-    !Array.isArray(dimensoes) ||
-    dimensoes.length !== 3 ||
-    !dimensoes.every(
-      (numero) =>
-        typeof numero === 'number' &&
-        Number.isFinite(numero) &&
-        numero >= 0,
-    )
-  ) {
-    throw new Error('Há objetos com identificação ou dimensões inválidas.')
-  }
-
-  const superficies = peca.surfaces
-
-  if (!Array.isArray(superficies)) {
-    throw new Error('O arquivo contém um objeto com superfícies inválidas.')
-  }
-
-  const superficiesValidas: Superficie[] = superficies.map(
-    (valor: unknown) => {
-      if (typeof valor !== 'object' || valor === null) {
-        throw new Error('Há uma superfície invalida no arquivo.')
-      }
-      
-      const superficie = valor as Record<string, unknown>
-
-      if (
-        typeof superficie.material !== 'string' ||
-        typeof superficie.areaM2 !== 'number' ||
-        !Number.isFinite(superficie.areaM2) ||
-        superficie.areaM2 < 0
-      ) {
-        throw new Error('há uma superficie com material ou área inválida')
-      }
-
-      return {
-        material: superficie.material,
-        areaM2: superficie.areaM2,
-      }
-    },
-  )
-
-  return {
-    id: peca.id,
-    name: peca.name,
-    category: typeof peca.category === 'string' && peca.category.trim()
-      ? peca.category
-      : 'Sem categoria',
-    dimensionsM: dimensoes as [number, number, number],
-    included: peca.included !== false,
-    surfaces: superficiesValidas,
-  }
-}
-
-
 function App() {
   const [projeto, setProjeto] = useState<Projeto | null>(null)
   const [erro, setErro] = useState('')
@@ -101,6 +20,20 @@ function App() {
   const [pagina, setPagina] = useState(1)
   const [busca, setBusca] = useState('')
   const [categoria, setCategoria] = useState('')
+  useEffect(() => {
+  if (!projeto) return
+
+  try {
+    localStorage.setItem(
+      'cenoquant-revisao-v1',
+      JSON.stringify(projeto),
+    )
+  } catch {
+    setErro(
+      'Não foi possível salvar a revisão no navegador. Baixe o JSON revisado para guardar suas alterações.',
+    )
+  }
+}, [projeto])
 
   async function importarProjeto(evento: ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0]
@@ -269,8 +202,8 @@ function alterarCategoria(id: string, novaCategoria: string) {
       .trim()
   }
 
-  const termoBusca = normalizar(busca)
-  const pecasFiltradas = pecas.filter((peca) => {
+    const termoBusca = normalizar(busca)
+    const pecasFiltradas = pecas.filter((peca) => {
     const correspondeAoNome = normalizar(peca.name).includes(termoBusca)
     const correspondeACategoria = categoria === '' || peca.category === categoria
     return correspondeAoNome && correspondeACategoria
@@ -279,62 +212,13 @@ function alterarCategoria(id: string, novaCategoria: string) {
   const total = pecas.length
   const totalIncluido = pecas.filter((peca) => peca.included).length
   const totalExcluido = total - totalIncluido
-
-  const superficieIncluida = pecas
-    .filter((peca) => peca.included)
-    .reduce(
-      (total, peca) =>
-        total +
-        peca.surfaces.reduce(
-          (subtotal, superficie) => subtotal + superficie.areaM2,
-          0,
-        ),
-      0,
-    )
+  const superficieIncluida = calcularSuperficieIncluida(pecas)
   const totalFiltrado = pecasFiltradas.length
   const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA))
   const inicio = (pagina - 1) * ITENS_POR_PAGINA
   const pecasVisiveis = pecasFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA)
-
-  const contagemPorCategoria = new Map<string, number>()
-
-for (const peca of pecas) {
-  if (!peca.included) continue
-
-  const quantidadeAtual = contagemPorCategoria.get(peca.category) ?? 0
-
-  contagemPorCategoria.set(peca.category, quantidadeAtual + 1)
-}
-
-const resumoPorCategoria = [...contagemPorCategoria.entries()]
-  .map(([categoria, quantidade]) => ({
-    categoria,
-    quantidade,
-  }))
-  .sort((a, b) => a.categoria.localeCompare(b.categoria, 'pt-BR'))
-
-const areasPorMaterial = new Map<string, number>()
-
-for (const peca of pecas) {
-  if (!peca.included) continue
-
-  for (const superficie of peca.surfaces) {
-    const material = superficie.material.trim() || 'Sem material'
-    const areaAtual = areasPorMaterial.get(material) ?? 0
-
-    areasPorMaterial.set(
-      material,
-      areaAtual + superficie.areaM2,
-    )
-  }
-}
-
-const resumoPorMaterial = [...areasPorMaterial.entries()]
-  .map(([material, areaM2]) => ({
-    material,
-    areaM2,
-  }))
-  .sort((a, b) => a.material.localeCompare(b.material, 'pt-BR'))
+  const resumoPorCategoria = calcularResumoCategorias(pecas)
+  const resumoPorMaterial = calcularResumoMateriais(pecas)
 
 function exportarResumoCSV() {
   if (resumoPorCategoria.length === 0) return
@@ -548,33 +432,17 @@ function exportarMateriaisCSV() {
           ) : (
             <>
              <TabelaPecas
-  pecas={pecasVisiveis}
-  categorias={categorias}
-  aoAlterarInclusao={alterarInclusao}
-  aoAlterarCategoria={alterarCategoria}
-/>
+               pecas={pecasVisiveis}
+              categorias={categorias}
+              aoAlterarInclusao={alterarInclusao}
+               aoAlterarCategoria={alterarCategoria}
+              />
 
-              <nav className="paginacao" aria-label="Páginas da tabela">
-                <button
-                  type="button"
-                  disabled={pagina === 1}
-                  onClick={() => setPagina((atual) => atual - 1)}
-                >
-                  Anterior
-                </button>
-
-                <span aria-live="polite">
-                  Página {pagina} de {totalPaginas}
-                </span>
-
-                <button
-                  type="button"
-                  disabled={pagina === totalPaginas}
-                  onClick={() => setPagina((atual) => atual + 1)}
-                >
-                  Próxima
-                </button>
-              </nav>
+              <Paginacao
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+               aoAlterarPagina={setPagina}
+              />
             </>
           )}
         </section>

@@ -1,13 +1,9 @@
-type PecaTabela = {
-  id: string
-  name: string
-  category: string
-  dimensionsM: [number, number, number]
-  included: boolean
-}
+import type { Peca } from "../types/cenoquant"
+
+
 
 type TabelaPecasProps = {
-  pecas: PecaTabela[]
+  pecas: Peca[]
   categorias: string[]
   aoAlterarInclusao: (id: string, incluir: boolean) => void
   aoAlterarCategoria: (id: string, categoria: string) => void
