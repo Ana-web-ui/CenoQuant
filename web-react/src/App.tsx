@@ -1,83 +1,164 @@
-import { useEffect,  useState } from 'react'
-import type { ChangeEvent } from 'react'
+import { baixarArquivo } from './utils/baixarArquivo'
+import { gerarCsvCategorias } from './utils/gerarCsvCategorias'
+import { gerarJsonRevisado } from './utils/gerarJsonRevisado'
+import EdicaoLote from './components/EdicaoLote'
+import ProtecaoRevisao from './components/ProtecaoRevisao'
+import { useRevisaoSalva } from './hooks/useRevisaoSalva'
+import { gerarCsvMateriais } from './utils/gerarCsvMateriais'
+import RenomearCategoria from './components/RenomearCategoria'
+import { renomearCategoria } from './utils/renomearCategoria'
+import { listarMateriais } from './utils/listarMateriais'
+import EditarNomeProjeto from './components/EditarNomeProjeto'
+import { renomearProjeto } from './utils/renomearProjeto'
+import ConferenciaRevisao from './components/ConferenciaRevisao'
+import { conferirPecas } from './utils/conferirPecas'
+import type { FiltroConferencia } from './utils/conferirPecas'
+import { gerarCsvSelecao } from './utils/gerarCsvSelecao'
+import DetalhesPeca from './components/DetalhesPeca'
+import { ordenarPecas } from './utils/ordenarPecas'
+import type { OrdemPecas } from './utils/ordenarPecas'
+import { validarProjeto } from './utils/validarProjeto'
+import AlteracoesRevisao from './components/AlteracoesRevisao'
+import { compararRevisao } from './utils/compararRevisao'
+import type { AlteracaoRevisao } from './utils/compararRevisao'
+import { gerarCsvAlteracoes } from './utils/gerarCsvAlteracoes'
+import RelatorioImpressao from './components/RelatorioImpressao'
+import AreaImportacao from './components/AreaImportacao'
+import { validarCategoriasPersonalizadas, adicionarCategoriaPersonalizada } from './utils/categoriasPersonalizadas'
+import { filtrarPecas } from './utils/filtrarPecas'
+import type { FiltroInclusao } from './utils/filtrarPecas'
+import { validarAcrescimo } from './utils/acrescimoMaterial'
+import { gerarCsvAvisos } from './utils/gerarCsvAvisos'
+import ResumoGrupos from './components/ResumoGrupos'
+import { calcularGrupos } from './utils/calcularGrupos'
+import { gerarCsvGrupos } from './utils/gerarCsvGrupos'
+import { editarPecasEmLote, descreverAlteracaoLote } from './utils/editarPecasEmLote'
+import type { AlteracaoPecas } from './utils/editarPecasEmLote'
+import { gerarCsvPecas } from './utils/gerarCsvPecas'
+import { useRef, useState } from 'react'
 import './App.css'
 import ResumoMateriais from './components/ResumoMateriais'
 import ResumoCategorias from './components/ResumoCategorias'
 import FiltrosPecas from './components/FiltrosPecas'
 import TabelaPecas from './components/TabelaPecas'
 import Paginacao from './components/Paginacao'
-import type {  Peca, Projeto } from './types/cenoquant'
-import { validarPeca } from './utils/validarPeca'
+import type { Aviso, Projeto } from './types/cenoquant'
 import { calcularResumoCategorias } from './utils/calcularResumoCategorias'
 import { calcularResumoMateriais } from './utils/calcularResumoMateriais'
 import { calcularSuperficieIncluida } from './utils/calcularSuperficieIncluida'
+import PainelAvisos from './components/PainelAvisos'
+import { validarAvisos } from './utils/validarAvisos'
 
 const ITENS_POR_PAGINA = 20
+
+
 function App() {
-  const [projeto, setProjeto] = useState<Projeto | null>(() => {
-  try {
-    const salvo = localStorage.getItem('cenoquant-revisao-v1')
 
-    if (!salvo) return null
+  
+  const { projeto, setProjeto, status: statusSalvamento, problema: problemaRevisao,
+    autorizarImportacao, baixarCopia, temCopia } = useRevisaoSalva()
+  const [projetoAnterior, setProjetoAnterior] = useState<Projeto | null>(null)
+  const [mensagemHistorico, setMensagemHistorico] = useState('')
+  const [campoEmEdicao, setCampoEmEdicao] = useState('')
 
-    const dados = JSON.parse(salvo)
-
-    if (
-      typeof dados?.nome !== 'string' ||
-      !Array.isArray(dados?.pecas) ||
-      dados.pecas.length > 10000 ||
-      dados?.arquivoOriginal?.schema !== 'ceno-quant/1' ||
-      !Array.isArray(dados.arquivoOriginal.pieces)
-    ) {
-      return null
-    }
-
-    const pecas: Peca[] = dados.pecas.map(validarPeca)
-    const ids = new Set(pecas.map((peca) => peca.id))
-
-    if (ids.size !== pecas.length) return null
-
-    return {
-      nome: dados.nome,
-      pecas,
-      arquivoOriginal: dados.arquivoOriginal,
-    }
-  } catch {
-    return null
+  function alterarNomeProjeto(nome: string) {
+    if (!projeto) return
+    const atualizado = renomearProjeto(projeto, nome)
+    if (atualizado === projeto) return
+    registrarAlteracao()
+    setProjeto(atualizado)
+    setMensagemHistorico('Nome do projeto atualizado. Você pode desfazer esta alteração.')
   }
-})
+
+  function registrarAlteracao() {
+    setProjetoAnterior(projeto)
+    setMensagemHistorico('')
+    setCampoEmEdicao('')
+  }
+
+  function desfazerAlteracao() {
+    if (!projetoAnterior || carregando) return
+    setNovaCategoria('')
+    setMensagemCategoria('')
+    setErroCategoria(false)
+    setCategoriaLote('')
+    setCodigoLote('')
+    setObservacaoLote('')
+    setProjeto(projetoAnterior)
+    setProjetoAnterior(null)
+    setCampoEmEdicao('')
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setBusca('')
+    setCategoria('')
+    setFiltroInclusao('todos')
+    setFiltroConferencia('todas')
+    setFiltroMaterial(null)
+    setOrdem('original')
+    setPagina(1)
+    setMensagemHistorico('Última alteração desfeita. Os filtros foram limpos para facilitar a conferência.')
+  }
+
   const [erro, setErro] = useState('')
+  const [idDetalhes, setIdDetalhes] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
+  const importacaoEmAndamento = useRef(false)
   const [pagina, setPagina] = useState(1)
   const [busca, setBusca] = useState('')
   const [categoria, setCategoria] = useState('')
-  const [statusSalvamento, setStatusSalvamento] = useState<
-    'sem-projeto' | 'salvo' | 'erro'
-  >('sem-projeto')
+  const [filtroInclusao, setFiltroInclusao] = useState<FiltroInclusao>('todos')
+  const [ordem, setOrdem] = useState<OrdemPecas>('original')
+  const [materiaisPorCategoria, setMateriaisPorCategoria] = useState(false)
+  const [filtroConferencia, setFiltroConferencia] = useState<FiltroConferencia>('todas')
+  const [filtroMaterial, setFiltroMaterial] = useState<string | null>(null)
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [categoriaLote, setCategoriaLote] = useState('')
+  const [codigoLote, setCodigoLote] = useState('')
+  const [observacaoLote, setObservacaoLote] = useState('')
+  const [mensagemLote, setMensagemLote] = useState('')
+  const [novaCategoria, setNovaCategoria] = useState('')
+  const [mensagemCategoria, setMensagemCategoria] = useState('')
+  const [erroCategoria, setErroCategoria] = useState(false)
 
-  useEffect(() => {
-    if (!projeto) {
-      setStatusSalvamento('sem-projeto')
-      return
-    }
+  function selecionarPeca(id: string, selecionar: boolean) {
+    setSelecionados((atual) => {
+      const novos = new Set(atual)
+      if (selecionar) novos.add(id)
+      else novos.delete(id)
+      return novos
+    })
+    setMensagemLote('')
+  }
 
-    try {
-      localStorage.setItem(
-        'cenoquant-revisao-v1',
-        JSON.stringify(projeto),
+  function aplicarEmLote(alteracao: AlteracaoPecas) {
+    if (selecionados.size === 0) return
+    const foraDaPagina = [...selecionados].filter((id) =>
+      !pecasVisiveis.some((peca) => peca.id === id),
+    ).length
+    const editaTexto = alteracao.code !== undefined || alteracao.note !== undefined
+    if (foraDaPagina > 0 || editaTexto) {
+      const confirmou = window.confirm(
+        `${descreverAlteracaoLote(alteracao)} em ${selecionados.size.toLocaleString('pt-BR')} objetos selecionados? ` +
+        `${foraDaPagina.toLocaleString('pt-BR')} estão em outras páginas. ` +
+        (alteracao.code !== undefined ? 'O mesmo código pode reunir objetos no resumo agrupado. ' : '') +
+        'Cancelar mantém a seleção e não altera os objetos.',
       )
-
-      setStatusSalvamento('salvo')
-    } catch {
-      setStatusSalvamento('erro')
+      if (!confirmou) return
     }
-  }, [projeto])
+    registrarAlteracao()
+    const quantidade = selecionados.size
+    setProjeto((atual) => atual ? {
+      ...atual,
+      pecas: editarPecasEmLote(atual.pecas, selecionados, alteracao),
+    } : atual)
+    setSelecionados(new Set())
+    setPagina(1)
+    setMensagemLote(`${quantidade.toLocaleString('pt-BR')} objetos atualizados.`)
+  }
 
-  async function importarProjeto(evento: ChangeEvent<HTMLInputElement>) {
-    const arquivo = evento.target.files?.[0]
-    evento.target.value = ''
-
-    if (!arquivo) return
+  async function importarArquivo(arquivo: File) {
+    if (importacaoEmAndamento.current) return
+    importacaoEmAndamento.current = true
 
     setErro('')
     setCarregando(true)
@@ -90,44 +171,31 @@ function App() {
       const texto = await arquivo.text()
       const dados = JSON.parse(texto.replace(/^\uFEFF/, ''))
 
-      if (
-        dados?.schema !== 'ceno-quant/1' ||
-        typeof dados?.project?.name !== 'string' ||
-        !Array.isArray(dados?.pieces)
-      ) {
-        throw new Error('Esse arquivo não está no formato do Ceno Quant.')
-      }
+      const projetoImportado = validarProjeto(dados)
+      if (!autorizarImportacao()) return
 
-      if (dados.pieces.length > 10000) {
-        throw new Error('O limite desta versão é de 10.000 objetos.')
-      }
+      setNovaCategoria('')
+      setMensagemCategoria('')
+      setErroCategoria(false)
+      setProjetoAnterior(null)
+      setMensagemHistorico('')
+      setCampoEmEdicao('')
+      setIdDetalhes(null)
+      setMateriaisPorCategoria(false)
+      setProjeto(projetoImportado)
 
-      const pecas: Peca[] = dados.pieces.map(validarPeca)
-      const identificadores = new Set(pecas.map((peca: Peca) => peca.id))
-
-      if (identificadores.size !== pecas.length) {
-        throw new Error('O arquivo contém identificadores repetidos.')
-      }
-      if (projeto) {
-      const confirmou = window.confirm(
-        'Importar este arquivo substituirá a revisão atual e sua cópia ' +
-        'automática neste navegador. Se quiser guardar a revisão atual, ' +
-        'clique em Cancelar e baixe o JSON revisado antes de continuar. ' +
-        'Deseja substituir?',
-        )
-
-        if (!confirmou) return
-      }
-
-      setProjeto({
-        nome: dados.project.name,
-        pecas,
-        arquivoOriginal: dados,
-      })
-
+      setSelecionados(new Set())
+      setCategoriaLote('')
+    setCodigoLote('')
+    setObservacaoLote('')
+      setMensagemLote('')
       setPagina(1)
       setBusca('')
       setCategoria('')
+    setFiltroInclusao('todos')
+    setFiltroConferencia('todas')
+    setFiltroMaterial(null)
+    setOrdem('original')
     } catch (erro) {
       setErro(
         erro instanceof SyntaxError
@@ -137,11 +205,34 @@ function App() {
             : 'Não foi possível importar o arquivo.',
       )
     } finally {
+      importacaoEmAndamento.current = false
       setCarregando(false)
     }
   }
 
+  function alterarTextoPeca(id: string, campo: 'code' | 'note', valor: string) {
+    if (valor.length > 2000) return
+    const peca = projeto?.pecas.find((item) => item.id === id)
+    if (!peca || peca[campo] === valor) return
+    setSelecionados(new Set())
+    setMensagemLote('')
+    const chaveCampo = JSON.stringify([id, campo])
+    if (campoEmEdicao !== chaveCampo) {
+      registrarAlteracao()
+      setCampoEmEdicao(chaveCampo)
+    }
+    setProjeto((atual) => atual ? {
+      ...atual,
+      pecas: atual.pecas.map((peca) => peca.id === id ? { ...peca, [campo]: valor } : peca),
+    } : atual)
+  }
+
   function alterarInclusao(id: string, incluir: boolean) {
+    const peca = projeto?.pecas.find((item) => item.id === id)
+    if (!peca || peca.included === incluir) return
+    registrarAlteracao()
+    setSelecionados(new Set())
+    setMensagemLote('')
     setProjeto((atual) => {
       if (!atual) return atual
 
@@ -153,60 +244,25 @@ function App() {
       }
     })
   }
-function exportarProjeto() {
-  if (!projeto) return
-
-  const originais = projeto.arquivoOriginal.pieces
-
-  if (!Array.isArray(originais)) {
-    setErro('Não foi possível encontrar os objetos originais.')
-    return
-  }
-
-  const revisoes = new Map(
-    projeto.pecas.map((peca) => [peca.id, peca]),
-  )
-
-  const pecasRevisadas = originais.map((valor: unknown) => {
-    const original = valor as Record<string, unknown>
-    const revisao = revisoes.get(original.id as string)
-
-    if (!revisao) return original
-
-    return {
-      ...original,
-      category: revisao.category,
-      included: revisao.included,
+  function exportarProjeto() {
+    if (!projeto) return
+    if (!Array.isArray(projeto.arquivoOriginal.pieces)) {
+      setErro('Não foi possível encontrar os objetos originais.')
+      return
     }
-  })
-
-  const arquivoRevisado = {
-    ...projeto.arquivoOriginal,
-    pieces: pecasRevisadas,
+    baixarArquivo(
+      gerarJsonRevisado(projeto),
+      'CenoQuant_revisado.json',
+      'application/json;charset=utf-8',
+    )
   }
-
-  const texto = JSON.stringify(arquivoRevisado, null, 2)
-
-  const arquivo = new Blob([texto], {
-    type: 'application/json;charset=utf-8',
-  })
-
-  const endereco = URL.createObjectURL(arquivo)
-  const link = document.createElement('a')
-
-  link.href = endereco
-  link.download = 'CenoQuant_revisado.json'
-
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(endereco)
-  }, 1000)
-}
 
 function alterarCategoria(id: string, novaCategoria: string) {
+  const peca = projeto?.pecas.find((item) => item.id === id)
+  if (!peca || peca.category === novaCategoria) return
+  registrarAlteracao()
+  setSelecionados(new Set())
+  setMensagemLote('')
   setProjeto((atual) => {
     if (!atual) return atual
 
@@ -238,24 +294,78 @@ function alterarCategoria(id: string, novaCategoria: string) {
     'Estrutura e acabamentos',
     'Elementos cenográficos',
     'Revisar identificação',
+    ...validarCategoriasPersonalizadas(projeto?.arquivoOriginal.customCategories),
     ...pecas.map((peca) => peca.category),
   ]),
 ].sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
-  function normalizar(texto: string) {
-    return texto
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLocaleLowerCase('pt-BR')
-      .trim()
+  function alterarNomeCategoria(origem: string, destino: string): boolean {
+    if (!projeto) return false
+    const atualizado = renomearCategoria(projeto, origem, destino, categorias)
+    if (atualizado === projeto) return false
+    const afetados = pecas.filter((p) => p.category === origem)
+    const excluidos = afetados.filter((p) => !p.included).length
+    if (!window.confirm(
+      `Renomear "${origem}" para "${destino.trim()}" no projeto inteiro? ` +
+      `${afetados.length.toLocaleString('pt-BR')} objetos serão afetados, incluindo ` +
+      `${excluidos.toLocaleString('pt-BR')} excluídos do quantitativo. ` +
+      'Esta ação também alcança objetos fora dos filtros atuais.',
+    )) return false
+    registrarAlteracao()
+    setProjeto(atualizado)
+    setSelecionados(new Set())
+    setCategoriaLote('')
+    setMensagemLote('')
+    setBusca('')
+    setCategoria(destino.trim())
+    setFiltroInclusao('todos')
+    setFiltroConferencia('todas')
+    setFiltroMaterial(null)
+    setPagina(1)
+    setMensagemHistorico('Categoria renomeada. Você pode desfazer esta alteração.')
+    return true
   }
 
-    const termoBusca = normalizar(busca)
-    const pecasFiltradas = pecas.filter((peca) => {
-    const correspondeAoNome = normalizar(peca.name).includes(termoBusca)
-    const correspondeACategoria = categoria === '' || peca.category === categoria
-    return correspondeAoNome && correspondeACategoria
-  })
+  function criarCategoria() {
+    if (!projeto) return
+    try {
+      const novas = adicionarCategoriaPersonalizada(
+        validarCategoriasPersonalizadas(projeto.arquivoOriginal.customCategories),
+        novaCategoria,
+        categorias,
+      )
+      registrarAlteracao()
+      setProjeto({
+        ...projeto,
+        arquivoOriginal: { ...projeto.arquivoOriginal, customCategories: novas },
+      })
+      setNovaCategoria('')
+      setErroCategoria(false)
+      setMensagemCategoria('Categoria criada. Escolha-a na tabela ou na edição em lote para aplicá-la aos objetos.')
+    } catch (erro) {
+      setErroCategoria(true)
+      setMensagemCategoria(erro instanceof Error ? erro.message : 'Não foi possível criar a categoria.')
+    }
+  }
+
+  const pecasFiltradas = filtrarPecas(pecas, busca, categoria, filtroInclusao, filtroConferencia, filtroMaterial)
+
+  const materiaisDisponiveis = listarMateriais(pecas)
+  const pecasOrdenadas = ordenarPecas(pecasFiltradas, ordem)
+  const indicadoresConferencia = conferirPecas(pecas)
+
+  function abrirConferencia(filtro: FiltroConferencia) {
+    setBusca('')
+    setCategoria('')
+    setFiltroInclusao('incluidos')
+    setFiltroConferencia(filtro)
+    setFiltroMaterial(null)
+    setOrdem('original')
+    setPagina(1)
+    setSelecionados(new Set())
+    setMensagemLote('')
+  }
+
 
   const total = pecas.length
   const totalIncluido = pecas.filter((peca) => peca.included).length
@@ -263,113 +373,115 @@ function alterarCategoria(id: string, novaCategoria: string) {
   const superficieIncluida = calcularSuperficieIncluida(pecas)
   const totalFiltrado = pecasFiltradas.length
   const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA))
-  const inicio = (pagina - 1) * ITENS_POR_PAGINA
-  const pecasVisiveis = pecasFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA)
+  const paginaAtual = Math.min(pagina, totalPaginas)
+  const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
+  const pecasVisiveis = pecasOrdenadas.slice(inicio, inicio + ITENS_POR_PAGINA)
+  const selecionadosForaDaPagina = [...selecionados].filter((id) =>
+    !pecasVisiveis.some((peca) => peca.id === id),
+  ).length
+
+  function selecionarResultadosFiltrados() {
+    setSelecionados(new Set(pecasFiltradas.map((peca) => peca.id)))
+    setMensagemLote('')
+  }
+
   const resumoPorCategoria = calcularResumoCategorias(pecas)
-  const resumoPorMaterial = calcularResumoMateriais(pecas)
-
-function exportarResumoCSV() {
-  if (resumoPorCategoria.length === 0) return
-
-  function prepararCelula(valor: string | number) {
-    if (typeof valor === 'number') return String(valor)
-
-    let texto = valor
-
-    // Evita que nomes de categorias sejam interpretados como fórmulas.
-    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(texto)) {
-      texto = "'" + texto
+  const resumoPorMaterial = calcularResumoMateriais(pecas, materiaisPorCategoria)
+  const grupos = calcularGrupos(pecas)
+  const acrescimo = validarAcrescimo(projeto?.arquivoOriginal.lossPercent)
+  let alteracoes: AlteracaoRevisao[] = []
+  let erroComparacao = ''
+  if (projeto) {
+    try {
+      alteracoes = compararRevisao(pecas, projeto.arquivoOriginal.pieces)
+    } catch {
+      erroComparacao = 'Não foi possível comparar esta revisão com o arquivo importado.'
     }
-
-    // Protege aspas, separadores e quebras de linha.
-    return `"${texto.replace(/"/g, '""')}"`
   }
 
-  const linhas: (string | number)[][] = [
-    ['Categoria', 'Objetos incluídos'],
-    ...resumoPorCategoria.map((item) => [
-      item.categoria,
-      item.quantidade,
-    ]),
-    ['Total incluído', totalIncluido],
-  ]
-
-  const conteudo = linhas
-    .map((linha) => linha.map(prepararCelula).join(';'))
-    .join('\r\n')
-
-  const arquivo = new Blob(['\uFEFF', conteudo], {
-    type: 'text/csv;charset=utf-8',
-  })
-
-  const endereco = URL.createObjectURL(arquivo)
-  const link = document.createElement('a')
-
-  link.href = endereco
-  link.download = 'CenoQuant_resumo_categorias.csv'
-
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(endereco)
-  }, 1000)
-}
-
-function exportarMateriaisCSV() {
-  if (resumoPorMaterial.length === 0) return
-
-  function prepararCelula(texto: string) {
-    // Evita interpretar nomes de materiais como fórmulas.
-    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(texto)) {
-      texto = "'" + texto
-    }
-
-    return `"${texto.replace(/"/g, '""')}"`
+  function exportarAlteracoesCSV() {
+    if (!projeto || erroComparacao || alteracoes.length === 0) return
+    baixarArquivo(
+      gerarCsvAlteracoes(alteracoes, projeto.nome),
+      'CenoQuant_alteracoes.csv',
+      'text/csv;charset=utf-8',
+    )
   }
 
-  function formatarAreaCSV(area: number) {
-    return area.toLocaleString('pt-BR', {
-      useGrouping: false,
-      minimumFractionDigits: 6,
-      maximumFractionDigits: 6,
-    })
+
+  function alterarAcrescimo(valor: number) {
+    const percentual = validarAcrescimo(valor)
+    if (percentual === acrescimo) return
+    registrarAlteracao()
+    setProjeto((atual) => atual ? {
+      ...atual,
+      arquivoOriginal: { ...atual.arquivoOriginal, lossPercent: percentual },
+    } : atual)
   }
 
-  const linhas = [
-    ['Material', 'Superfície medida (m²)'],
-    ...resumoPorMaterial.map((item) => [
-      item.material,
-      formatarAreaCSV(item.areaM2),
-    ]),
-    ['Total de superfície', formatarAreaCSV(superficieIncluida)],
-  ]
+  function exportarAvisosCSV() {
+    if (!projeto || erroAvisos || avisosExtracao.length === 0) return
+    baixarArquivo(
+      gerarCsvAvisos(avisosExtracao, projeto.nome),
+      'CenoQuant_avisos.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
 
-  const conteudo = linhas
-    .map((linha) => linha.map(prepararCelula).join(';'))
-    .join('\r\n')
+  function exportarGruposCSV() {
+    baixarArquivo(
+      gerarCsvGrupos(grupos),
+      'CenoQuant_grupos.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
 
-  const arquivo = new Blob(['\uFEFF', conteudo], {
-    type: 'text/csv;charset=utf-8',
-  })
+  function exportarSelecaoCSV() {
+    if (!projeto || selecionados.size === 0) return
+    baixarArquivo(
+      gerarCsvSelecao(ordenarPecas(pecas, ordem), selecionados),
+      'CenoQuant_objetos_selecionados.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
 
-  const endereco = URL.createObjectURL(arquivo)
-  const link = document.createElement('a')
+  function exportarPecasCSV() {
+    if (!projeto) return
+    baixarArquivo(
+      gerarCsvPecas(projeto.pecas),
+      'CenoQuant_objetos_incluidos.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
 
-  link.href = endereco
-  link.download = 'CenoQuant_superficie_por_material.csv'
+  function exportarResumoCSV() {
+    if (resumoPorCategoria.length === 0) return
+    baixarArquivo(
+      gerarCsvCategorias(resumoPorCategoria, totalIncluido),
+      'CenoQuant_resumo_categorias.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
 
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
+  function exportarMateriaisCSV() {
+    if (resumoPorMaterial.length === 0) return
+    baixarArquivo(
+      gerarCsvMateriais(resumoPorMaterial, superficieIncluida, acrescimo, materiaisPorCategoria),
+      'CenoQuant_superficie_por_material.csv',
+      'text/csv;charset=utf-8',
+    )
+  }
+let avisosExtracao: Aviso[] = []
+let erroAvisos = ''
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(endereco)
-  }, 1000)
+try {
+  avisosExtracao = validarAvisos(projeto?.arquivoOriginal.warnings)
+} catch {
+  erroAvisos = 'Não foi possível apresentar os avisos da extração.'
 }
 
   return (
+    <>
     <main className="pagina">
       <header>
         <span className="etiqueta">TV1 · CENOGRAFIA</span>
@@ -377,31 +489,13 @@ function exportarMateriaisCSV() {
         <p>Organize as peças e os materiais do seu projeto.</p>
       </header>
 
-      <section className="cartao">
-        <h2>Importar projeto</h2>
-        <p>
-        A revisão é salva automaticamente neste navegador.
-        Para continuar, abra o mesmo endereço usando o mesmo navegador
-        e perfil. Baixe o JSON revisado para manter uma cópia de segurança
-        ou transferir a revisão para outro computador.
-        </p>
+      <ProtecaoRevisao problema={problemaRevisao} temCopia={temCopia} aoBaixar={baixarCopia} />
 
-        <input
-          type="file"
-          accept=".json,application/json"
-          aria-label="Selecionar arquivo JSON do projeto"
-          onChange={importarProjeto}
-          disabled={carregando}
-        />
-
-        {carregando && <p role="status">Lendo o arquivo...</p>}
-
-        {erro && (
-          <p role="alert" style={{ color: '#b42318' }}>
-            {erro}
-          </p>
-        )}
-      </section>
+      <AreaImportacao
+        carregando={carregando}
+        erro={erro}
+        aoImportar={importarArquivo}
+      />
 
       {projeto && (
         <section className="cartao">
@@ -415,12 +509,12 @@ function exportarMateriaisCSV() {
             {statusSalvamento === 'salvo' &&
               'Revisão salva neste navegador.'}
 
+            {statusSalvamento === 'bloqueado' &&
+              'Salvamento automático pausado. Consulte o aviso de proteção acima e baixe o JSON revisado para guardar suas alterações.'}
+
             {statusSalvamento === 'erro' &&
               'Não foi possível salvar a revisão no navegador. Baixe o JSON revisado para guardar suas alterações.'}
           </p>
-          <button type="button" onClick={exportarProjeto}>
-            Baixar JSON revisado
-          </button>
           <p>{total.toLocaleString('pt-BR')} objetos no arquivo.</p>
 
           <p aria-live="polite">
@@ -429,6 +523,166 @@ function exportarMateriaisCSV() {
             <strong>{totalExcluido.toLocaleString('pt-BR')}</strong> excluídos
             {' — totais do projeto inteiro.'}
           </p>
+
+          <h3>Revisar objetos</h3>
+         <FiltrosPecas
+  busca={busca}
+  categoria={categoria}
+  categorias={categorias}
+  materiais={materiaisDisponiveis}
+  material={filtroMaterial}
+  aoAlterarMaterial={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setFiltroMaterial(valor)
+    setPagina(1)
+  }}
+  inclusao={filtroInclusao}
+  conferencia={filtroConferencia}
+  aoAlterarConferencia={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setFiltroConferencia(valor)
+    setPagina(1)
+  }}
+  ordem={ordem}
+  aoAlterarOrdem={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setOrdem(valor)
+    setPagina(1)
+  }}
+  aoAlterarInclusao={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setFiltroInclusao(valor)
+    setPagina(1)
+  }}
+  aoAlterarBusca={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setBusca(valor)
+    setPagina(1)
+  }}
+  aoAlterarCategoria={(valor) => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setCategoria(valor)
+    setPagina(1)
+  }}
+  aoLimpar={() => {
+    setSelecionados(new Set())
+    setMensagemLote('')
+    setBusca('')
+    setCategoria('')
+    setFiltroInclusao('todos')
+    setFiltroConferencia('todas')
+    setFiltroMaterial(null)
+    setOrdem('original')
+    setPagina(1)
+  }}
+/>
+
+          <p role="status">
+            {totalFiltrado.toLocaleString('pt-BR')} de{' '}
+            {total.toLocaleString('pt-BR')} objetos encontrados.
+          </p>
+
+          {selecionados.size > 0 && <p role="status">
+            {selecionados.size.toLocaleString('pt-BR')} selecionados. Use a edição em lote nas opções avançadas abaixo.
+          </p>}
+          {totalFiltrado === 0 ? (
+            <p>
+              {total === 0
+                ? 'Este projeto não contém objetos.'
+                : 'Nenhum objeto encontrado. Tente outro nome ou categoria.'}
+            </p>
+          ) : (
+            <>
+             <TabelaPecas
+               pecas={pecasVisiveis}
+               selecionados={selecionados}
+               aoSelecionar={selecionarPeca}
+                 aoVerDetalhes={setIdDetalhes}
+               aoAlterarTexto={alterarTextoPeca}
+               aoFinalizarTexto={() => setCampoEmEdicao('')}
+              categorias={categorias}
+              aoAlterarInclusao={alterarInclusao}
+               aoAlterarCategoria={alterarCategoria}
+              />
+
+              <Paginacao
+                pagina={paginaAtual}
+                totalPaginas={totalPaginas}
+               aoAlterarPagina={(novaPagina) => {
+                 setSelecionados(new Set())
+                 setMensagemLote('')
+                 setPagina(novaPagina)
+               }}
+              />
+            </>
+          )}
+          <section className="exportacao-principal" aria-labelledby="titulo-exportar">
+            <h3 id="titulo-exportar">Exportar revisão</h3>
+          <div className="acoes-projeto">
+          <button type="button" onClick={() => window.print()}>
+            Imprimir relatório / salvar PDF
+          </button>
+          <button type="button" onClick={exportarProjeto}>
+            Baixar JSON revisado
+          </button>
+          <button
+            type="button"
+            onClick={exportarPecasCSV}
+            disabled={totalIncluido === 0}
+          >
+            Exportar objetos incluídos em CSV
+          </button>
+          </div>
+          <p>
+            O CSV detalhado considera todos os objetos incluídos, independentemente
+            dos filtros. As medidas são do modelo e precisam de revisão para fabricação.
+          </p>
+          </section>
+          <details className="opcoes-avancadas" id="opcoes-avancadas">
+            <summary>Opções avançadas — resumos, edição em lote e conferência</summary>
+            <div className="conteudo-avancado">
+              <h3>Projeto e histórico</h3>
+          <EditarNomeProjeto key={projeto.nome} nome={projeto.nome}
+            carregando={carregando} aoRenomear={alterarNomeProjeto} />
+          <button type="button" onClick={desfazerAlteracao}
+            disabled={!projetoAnterior || carregando}>
+            Desfazer última alteração
+          </button>
+          <p>
+            Desfaz uma alteração nesta sessão, incluindo uma edição em lote.
+            Em Código e Observação, desfaz o texto digitado desde a entrada no campo.
+            A opção é limpa ao atualizar a página ou importar outro projeto.
+          </p>
+          <p role="status">{mensagemHistorico}</p>
+          <EdicaoLote
+            quantidadeSelecionada={selecionados.size}
+            selecionadosForaDaPagina={selecionadosForaDaPagina}
+            quantidadeNaPagina={pecasVisiveis.length}
+            totalFiltrado={totalFiltrado}
+            carregando={carregando}
+            mensagemLote={mensagemLote}
+            categorias={categorias}
+            categoriaLote={categoriaLote}
+            codigoLote={codigoLote}
+            observacaoLote={observacaoLote}
+            aoSelecionarPagina={() => {
+              setSelecionados(new Set(pecasVisiveis.map((peca) => peca.id)))
+              setMensagemLote('')
+            }}
+            aoSelecionarResultados={selecionarResultadosFiltrados}
+            aoLimparSelecao={() => setSelecionados(new Set())}
+            aoExportarSelecao={exportarSelecaoCSV}
+            aoAlterarCategoria={setCategoriaLote}
+            aoAlterarCodigo={setCodigoLote}
+            aoAlterarObservacao={setObservacaoLote}
+            aoAplicar={aplicarEmLote}
+          />
 
           <p aria-live="polite">
             Superfície medida dos objetos incluídos:{' '}
@@ -456,59 +710,74 @@ function exportarMateriaisCSV() {
 
           <ResumoMateriais
             materiais={resumoPorMaterial}
+            porCategoria={materiaisPorCategoria}
+            aoAlterarAgrupamento={setMateriaisPorCategoria}
             superficieTotal={superficieIncluida}
+            acrescimo={acrescimo}
+            aoAlterarAcrescimo={alterarAcrescimo}
             aoExportar={exportarMateriaisCSV}
           />
 
-         <FiltrosPecas
-  busca={busca}
-  categoria={categoria}
-  categorias={categorias}
-  aoAlterarBusca={(valor) => {
-    setBusca(valor)
-    setPagina(1)
-  }}
-  aoAlterarCategoria={(valor) => {
-    setCategoria(valor)
-    setPagina(1)
-  }}
-  aoLimpar={() => {
-    setBusca('')
-    setCategoria('')
-    setPagina(1)
-  }}
-/>
+          <ResumoGrupos grupos={grupos} aoExportar={exportarGruposCSV} />
+          <AlteracoesRevisao
+            alteracoes={alteracoes}
+            erro={erroComparacao}
+            aoExportar={exportarAlteracoesCSV}
+          />
 
-          <p role="status">
-            {totalFiltrado.toLocaleString('pt-BR')} de{' '}
-            {total.toLocaleString('pt-BR')} objetos encontrados.
-          </p>
-
-          {totalFiltrado === 0 ? (
-            <p>
-              {total === 0
-                ? 'Este projeto não contém objetos.'
-                : 'Nenhum objeto encontrado. Tente outro nome ou categoria.'}
-            </p>
+          {erroAvisos ? (
+            <p role="alert">{erroAvisos}</p>
           ) : (
-            <>
-             <TabelaPecas
-               pecas={pecasVisiveis}
-              categorias={categorias}
-              aoAlterarInclusao={alterarInclusao}
-               aoAlterarCategoria={alterarCategoria}
-              />
-
-              <Paginacao
-                pagina={pagina}
-                totalPaginas={totalPaginas}
-               aoAlterarPagina={setPagina}
-              />
-            </>
+            <PainelAvisos avisos={avisosExtracao} aoExportar={exportarAvisosCSV} />
           )}
+
+          <section aria-label="Categorias personalizadas">
+            <h3>Criar categoria</h3>
+            <p>
+              Adiciona uma opção às listas deste projeto sem reclassificar objetos.
+              Categorias sem objetos incluídos não aparecem no resumo por categoria.
+            </p>
+            <form onSubmit={(evento) => { evento.preventDefault(); criarCategoria() }}>
+              <label>
+                Nome da nova categoria
+                <input type="text" value={novaCategoria} maxLength={2000}
+                  onChange={(evento) => {
+                    setNovaCategoria(evento.target.value)
+                    setMensagemCategoria('')
+                  }} />
+              </label>
+              <button type="submit" disabled={!novaCategoria.trim() || carregando}>
+                Criar categoria
+              </button>
+            </form>
+            <p role={erroCategoria ? 'alert' : 'status'}
+              style={{ color: erroCategoria ? '#b42318' : undefined }}>
+              {mensagemCategoria}
+            </p>
+          </section>
+
+          <RenomearCategoria categorias={categorias} pecas={pecas}
+            carregando={carregando} aoRenomear={alterarNomeCategoria} />
+
+          <ConferenciaRevisao indicadores={indicadoresConferencia} aoConferir={abrirConferencia} />
+            </div>
+          </details>
         </section>
       )}
     </main>
+    <DetalhesPeca peca={pecas.find((peca) => peca.id === idDetalhes) ?? null}
+      aoFechar={() => setIdDetalhes(null)} />
+    {projeto && !erroAvisos && <RelatorioImpressao
+      projeto={projeto}
+      categorias={resumoPorCategoria}
+      materiais={resumoPorMaterial}
+      porCategoria={materiaisPorCategoria}
+      totalIncluido={totalIncluido}
+      superficie={superficieIncluida}
+      acrescimo={acrescimo}
+      quantidadeAvisos={avisosExtracao.length}
+    />}
+    </>
   )
 }
 

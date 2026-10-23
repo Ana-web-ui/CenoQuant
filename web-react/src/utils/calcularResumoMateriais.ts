@@ -1,26 +1,23 @@
 import type { Peca } from '../types/cenoquant'
 
-export function calcularResumoMateriais(pecas: Peca[]) {
-  const areasPorMaterial = new Map<string, number>()
+export type MaterialResumo = { categoria?: string; material: string; areaM2: number }
 
+export function calcularResumoMateriais(pecas: Peca[], porCategoria = false): MaterialResumo[] {
+  const resultado = new Map<string, MaterialResumo>()
   for (const peca of pecas) {
     if (!peca.included) continue
-
     for (const superficie of peca.surfaces) {
       const material = superficie.material.trim() || 'Sem material'
-      const areaAtual = areasPorMaterial.get(material) ?? 0
-
-      areasPorMaterial.set(
-        material,
-        areaAtual + superficie.areaM2,
-      )
+      const chave = JSON.stringify([porCategoria ? peca.category : null, material])
+      const item = resultado.get(chave) ?? {
+        ...(porCategoria ? { categoria: peca.category } : {}), material, areaM2: 0,
+      }
+      item.areaM2 += superficie.areaM2
+      resultado.set(chave, item)
     }
   }
-
-  return [...areasPorMaterial.entries()]
-    .map(([material, areaM2]) => ({
-      material,
-      areaM2,
-    }))
-    .sort((a, b) => a.material.localeCompare(b.material, 'pt-BR'))
+  return [...resultado.values()].sort((a, b) =>
+    (a.categoria ?? '').localeCompare(b.categoria ?? '', 'pt-BR') ||
+    a.material.localeCompare(b.material, 'pt-BR'),
+  )
 }

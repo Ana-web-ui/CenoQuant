@@ -1,16 +1,18 @@
 type PaginacaoProps ={
+    rotulo?: string
     pagina: number
     totalPaginas: number
     aoAlterarPagina: (pagina: number) => void
 }
 
 function Paginacao({
+    rotulo = 'Paginação da tabela',
     pagina,
     totalPaginas,
     aoAlterarPagina,
 } : PaginacaoProps) {
     return (
-        <nav className="paginacao" aria-label="Páginnas da tabela">
+        <nav className="paginacao" aria-label={rotulo}>
             <button
             type="button"
             disabled={pagina <= 1}
