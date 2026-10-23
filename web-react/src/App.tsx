@@ -1,16 +1,13 @@
+import OpcoesAvancadas from './components/OpcoesAvancadas'
 import { baixarArquivo } from './utils/baixarArquivo'
 import { gerarCsvCategorias } from './utils/gerarCsvCategorias'
 import { gerarJsonRevisado } from './utils/gerarJsonRevisado'
-import EdicaoLote from './components/EdicaoLote'
 import ProtecaoRevisao from './components/ProtecaoRevisao'
 import { useRevisaoSalva } from './hooks/useRevisaoSalva'
 import { gerarCsvMateriais } from './utils/gerarCsvMateriais'
-import RenomearCategoria from './components/RenomearCategoria'
 import { renomearCategoria } from './utils/renomearCategoria'
 import { listarMateriais } from './utils/listarMateriais'
-import EditarNomeProjeto from './components/EditarNomeProjeto'
 import { renomearProjeto } from './utils/renomearProjeto'
-import ConferenciaRevisao from './components/ConferenciaRevisao'
 import { conferirPecas } from './utils/conferirPecas'
 import type { FiltroConferencia } from './utils/conferirPecas'
 import { gerarCsvSelecao } from './utils/gerarCsvSelecao'
@@ -18,7 +15,6 @@ import DetalhesPeca from './components/DetalhesPeca'
 import { ordenarPecas } from './utils/ordenarPecas'
 import type { OrdemPecas } from './utils/ordenarPecas'
 import { validarProjeto } from './utils/validarProjeto'
-import AlteracoesRevisao from './components/AlteracoesRevisao'
 import { compararRevisao } from './utils/compararRevisao'
 import type { AlteracaoRevisao } from './utils/compararRevisao'
 import { gerarCsvAlteracoes } from './utils/gerarCsvAlteracoes'
@@ -29,7 +25,6 @@ import { filtrarPecas } from './utils/filtrarPecas'
 import type { FiltroInclusao } from './utils/filtrarPecas'
 import { validarAcrescimo } from './utils/acrescimoMaterial'
 import { gerarCsvAvisos } from './utils/gerarCsvAvisos'
-import ResumoGrupos from './components/ResumoGrupos'
 import { calcularGrupos } from './utils/calcularGrupos'
 import { gerarCsvGrupos } from './utils/gerarCsvGrupos'
 import { editarPecasEmLote, descreverAlteracaoLote } from './utils/editarPecasEmLote'
@@ -37,8 +32,6 @@ import type { AlteracaoPecas } from './utils/editarPecasEmLote'
 import { gerarCsvPecas } from './utils/gerarCsvPecas'
 import { useRef, useState } from 'react'
 import './App.css'
-import ResumoMateriais from './components/ResumoMateriais'
-import ResumoCategorias from './components/ResumoCategorias'
 import FiltrosPecas from './components/FiltrosPecas'
 import TabelaPecas from './components/TabelaPecas'
 import Paginacao from './components/Paginacao'
@@ -46,7 +39,6 @@ import type { Aviso, Projeto } from './types/cenoquant'
 import { calcularResumoCategorias } from './utils/calcularResumoCategorias'
 import { calcularResumoMateriais } from './utils/calcularResumoMateriais'
 import { calcularSuperficieIncluida } from './utils/calcularSuperficieIncluida'
-import PainelAvisos from './components/PainelAvisos'
 import { validarAvisos } from './utils/validarAvisos'
 
 const ITENS_POR_PAGINA = 20
@@ -644,124 +636,50 @@ try {
             dos filtros. As medidas são do modelo e precisam de revisão para fabricação.
           </p>
           </section>
-          <details className="opcoes-avancadas" id="opcoes-avancadas">
-            <summary>Opções avançadas — resumos, edição em lote e conferência</summary>
-            <div className="conteudo-avancado">
-              <h3>Projeto e histórico</h3>
-          <EditarNomeProjeto key={projeto.nome} nome={projeto.nome}
-            carregando={carregando} aoRenomear={alterarNomeProjeto} />
-          <button type="button" onClick={desfazerAlteracao}
-            disabled={!projetoAnterior || carregando}>
-            Desfazer última alteração
-          </button>
-          <p>
-            Desfaz uma alteração nesta sessão, incluindo uma edição em lote.
-            Em Código e Observação, desfaz o texto digitado desde a entrada no campo.
-            A opção é limpa ao atualizar a página ou importar outro projeto.
-          </p>
-          <p role="status">{mensagemHistorico}</p>
-          <EdicaoLote
-            quantidadeSelecionada={selecionados.size}
-            selecionadosForaDaPagina={selecionadosForaDaPagina}
-            quantidadeNaPagina={pecasVisiveis.length}
-            totalFiltrado={totalFiltrado}
-            carregando={carregando}
-            mensagemLote={mensagemLote}
-            categorias={categorias}
-            categoriaLote={categoriaLote}
-            codigoLote={codigoLote}
-            observacaoLote={observacaoLote}
-            aoSelecionarPagina={() => {
-              setSelecionados(new Set(pecasVisiveis.map((peca) => peca.id)))
-              setMensagemLote('')
+          <OpcoesAvancadas
+            nomeProjeto={{ nome: projeto.nome, carregando, aoRenomear: alterarNomeProjeto }}
+            historico={{ podeDesfazer: !!projetoAnterior, mensagem: mensagemHistorico, aoDesfazer: desfazerAlteracao }}
+            edicaoLote={{
+              quantidadeSelecionada: selecionados.size,
+              selecionadosForaDaPagina,
+              quantidadeNaPagina: pecasVisiveis.length,
+              totalFiltrado, carregando, mensagemLote, categorias,
+              categoriaLote, codigoLote, observacaoLote,
+              aoSelecionarPagina: () => {
+                setSelecionados(new Set(pecasVisiveis.map((peca) => peca.id)))
+                setMensagemLote('')
+              },
+              aoSelecionarResultados: selecionarResultadosFiltrados,
+              aoLimparSelecao: () => setSelecionados(new Set()),
+              aoExportarSelecao: exportarSelecaoCSV,
+              aoAlterarCategoria: setCategoriaLote,
+              aoAlterarCodigo: setCodigoLote,
+              aoAlterarObservacao: setObservacaoLote,
+              aoAplicar: aplicarEmLote,
             }}
-            aoSelecionarResultados={selecionarResultadosFiltrados}
-            aoLimparSelecao={() => setSelecionados(new Set())}
-            aoExportarSelecao={exportarSelecaoCSV}
-            aoAlterarCategoria={setCategoriaLote}
-            aoAlterarCodigo={setCodigoLote}
-            aoAlterarObservacao={setObservacaoLote}
-            aoAplicar={aplicarEmLote}
+            superficie={superficieIncluida}
+            resumoCategorias={{ categorias: resumoPorCategoria, totalIncluido, aoExportar: exportarResumoCSV }}
+            resumoMateriais={{
+              materiais: resumoPorMaterial, porCategoria: materiaisPorCategoria,
+              aoAlterarAgrupamento: setMateriaisPorCategoria,
+              superficieTotal: superficieIncluida, acrescimo,
+              aoAlterarAcrescimo: alterarAcrescimo, aoExportar: exportarMateriaisCSV,
+            }}
+            resumoGrupos={{ grupos, aoExportar: exportarGruposCSV }}
+            alteracoes={{ alteracoes, erro: erroComparacao, aoExportar: exportarAlteracoesCSV }}
+            avisos={{ avisos: avisosExtracao, aoExportar: exportarAvisosCSV }}
+            erroAvisos={erroAvisos}
+            criacaoCategoria={{
+              nome: novaCategoria, mensagem: mensagemCategoria, erro: erroCategoria,
+              aoCriar: criarCategoria,
+              aoAlterarNome: (nome) => {
+                setNovaCategoria(nome)
+                setMensagemCategoria('')
+              },
+            }}
+            renomearCategoria={{ categorias, pecas, carregando, aoRenomear: alterarNomeCategoria }}
+            conferencia={{ indicadores: indicadoresConferencia, aoConferir: abrirConferencia }}
           />
-
-          <p aria-live="polite">
-            Superfície medida dos objetos incluídos:{' '}
-            <strong>
-              {superficieIncluida.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{' '}
-              m²
-            </strong>
-          </p>
-
-          <p>
-            Esta medida soma as faces da geometria, incluindo frente,
-            verso e espessuras modeladas. Não representa diretamente
-            área de piso ou quantidade de material para compra.
-            O total considera o projeto inteiro, independentemente dos filtros.
-          </p>
-
-<ResumoCategorias
-  categorias={resumoPorCategoria}
-  totalIncluido={totalIncluido}
-  aoExportar={exportarResumoCSV}
-/>
-
-          <ResumoMateriais
-            materiais={resumoPorMaterial}
-            porCategoria={materiaisPorCategoria}
-            aoAlterarAgrupamento={setMateriaisPorCategoria}
-            superficieTotal={superficieIncluida}
-            acrescimo={acrescimo}
-            aoAlterarAcrescimo={alterarAcrescimo}
-            aoExportar={exportarMateriaisCSV}
-          />
-
-          <ResumoGrupos grupos={grupos} aoExportar={exportarGruposCSV} />
-          <AlteracoesRevisao
-            alteracoes={alteracoes}
-            erro={erroComparacao}
-            aoExportar={exportarAlteracoesCSV}
-          />
-
-          {erroAvisos ? (
-            <p role="alert">{erroAvisos}</p>
-          ) : (
-            <PainelAvisos avisos={avisosExtracao} aoExportar={exportarAvisosCSV} />
-          )}
-
-          <section aria-label="Categorias personalizadas">
-            <h3>Criar categoria</h3>
-            <p>
-              Adiciona uma opção às listas deste projeto sem reclassificar objetos.
-              Categorias sem objetos incluídos não aparecem no resumo por categoria.
-            </p>
-            <form onSubmit={(evento) => { evento.preventDefault(); criarCategoria() }}>
-              <label>
-                Nome da nova categoria
-                <input type="text" value={novaCategoria} maxLength={2000}
-                  onChange={(evento) => {
-                    setNovaCategoria(evento.target.value)
-                    setMensagemCategoria('')
-                  }} />
-              </label>
-              <button type="submit" disabled={!novaCategoria.trim() || carregando}>
-                Criar categoria
-              </button>
-            </form>
-            <p role={erroCategoria ? 'alert' : 'status'}
-              style={{ color: erroCategoria ? '#b42318' : undefined }}>
-              {mensagemCategoria}
-            </p>
-          </section>
-
-          <RenomearCategoria categorias={categorias} pecas={pecas}
-            carregando={carregando} aoRenomear={alterarNomeCategoria} />
-
-          <ConferenciaRevisao indicadores={indicadoresConferencia} aoConferir={abrirConferencia} />
-            </div>
-          </details>
         </section>
       )}
     </main>
