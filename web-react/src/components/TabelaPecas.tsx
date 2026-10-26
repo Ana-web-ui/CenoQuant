@@ -1,3 +1,4 @@
+import CampoTextoPeca from './CampoTextoPeca'
 import type { Peca } from "../types/cenoquant"
 
 
@@ -89,23 +90,23 @@ function TabelaPecas({
                     onClick={() => aoVerDetalhes(peca.id)}>Ver detalhes</button>
                 </td>
                 <td>
-                  <input
-                    type="text"
-                    aria-label={`Código de ${peca.name}`}
-                    value={peca.code}
-                    maxLength={2000}
-                    onBlur={aoFinalizarTexto}
-                    onChange={(evento) => aoAlterarTexto(peca.id, 'code', evento.target.value)}
+                  <CampoTextoPeca
+                    key={JSON.stringify([peca.id, 'code', peca.code])}
+                    valor={peca.code}
+                    rotulo={`Código de ${peca.name}`}
+                    
+                    aoConfirmar={(valor) => aoAlterarTexto(peca.id, 'code', valor)}
+                    aoFinalizar={aoFinalizarTexto}
                   />
                 </td>
                 <td>
-                  <textarea
-                    aria-label={`Observação de ${peca.name}`}
-                    value={peca.note}
-                    rows={2}
-                    maxLength={2000}
-                    onBlur={aoFinalizarTexto}
-                    onChange={(evento) => aoAlterarTexto(peca.id, 'note', evento.target.value)}
+                  <CampoTextoPeca
+                    key={JSON.stringify([peca.id, 'note', peca.note])}
+                    valor={peca.note}
+                    rotulo={`Observação de ${peca.name}`}
+                    multilinha
+                    aoConfirmar={(valor) => aoAlterarTexto(peca.id, 'note', valor)}
+                    aoFinalizar={aoFinalizarTexto}
                   />
                 </td>
 

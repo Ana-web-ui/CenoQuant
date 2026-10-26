@@ -182,7 +182,7 @@ O projeto não calcula orçamento, dimensionamento estrutural, plano de corte ou
 - Desfazer mantém apenas a última alteração da sessão; o estado para desfazer é perdido ao atualizar ou importar. Não há refazer ou histórico completo.
 - A comparação registra diferenças de categoria, inclusão, código e observação em relação ao último JSON importado. Não compara geometria, nome do projeto, percentual ou lista de categorias. Reimportar um JSON revisado estabelece nova referência.
 - Avisos são os da extração original; editar a revisão não os recalcula. Os indicadores de conferência não certificam que o levantamento esteja pronto para produção.
-- A edição de código/observação atualiza os dados a cada tecla. Um filtro dependente desse texto pode retirar a linha da lista durante a digitação, como no filtro de objetos sem código.
+- Código e observação são aplicados ao sair do campo. Isso permite concluir a digitação antes de atualizar filtros ou ordenação dependentes do texto; após a confirmação, a linha pode sair da lista filtrada. Saia do campo antes de atualizar ou fechar a página para guardar a edição.
 - O filtro de material distingue nomes exatos, mas o resumo remove espaços nas extremidades e usa `Sem material` para nomes vazios. Nomes diferentes podem ser reunidos no resumo, inclusive um nome literal `Sem material` com registros vazios. Essa consistência ainda precisa ser revisada.
 - O projeto completo é serializado para salvamento após mudanças. O desempenho com arquivos próximos dos limites ainda precisa de avaliação específica.
 
@@ -202,7 +202,7 @@ npm run build
 npm run lint
 ```
 
-Na última verificação de código, anterior a esta atualização de documentação, **71 testes e o build passaram**. O lint apresentou dois avisos: a expressão de proteção de CSV em `gerarCsvPecas.ts` e a atualização de estado no efeito de persistência em `useRevisaoSalva.ts`. Esses resultados são um registro, não uma garantia para alterações futuras.
+Na verificação de 23/10/2026, **74 testes e o build passaram**. O roteiro com o stand, a correção da edição sob filtros e a etapa de PDF ainda pendente estão em [Validação do stand](docs/VALIDACAO_STAND_2026-10-23.md). O lint apresentou dois avisos: a expressão de proteção de CSV em `gerarCsvPecas.ts` e a atualização de estado no efeito de persistência em `useRevisaoSalva.ts`. Esses resultados são um registro, não uma garantia para alterações futuras.
 
 Os testes cobrem regras de validação, revisão, filtros, cálculos selecionados, exportação, persistência e renderização de componentes. Não constituem uma suíte completa de interação no navegador.
 
